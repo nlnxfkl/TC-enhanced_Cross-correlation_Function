@@ -83,7 +83,6 @@ BASEFLAGS += -DVERIFICATION
 ```
  Now, you can simply compile by  
 ```
-$ cd code_forGPUs
 $ make
 ```  
 

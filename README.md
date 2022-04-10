@@ -14,7 +14,7 @@ The cross-correlation function can be calculated as a matrix-matrix product, and
 ## Usage
 ### Setting of input files
 * The number of time steps in observation data (referred to as matrix B in the paper) and the number of templates are defined in `./data/parameter_setting.dat`.
-
+* In our implementation, the number of timesteps of observation data has to be a multiple of 256.
 ```
 $ cat ./data/paramter_setting.dat
 the number of timesteps of observation data
@@ -101,7 +101,7 @@ Computation time on GPU : 0.3099442E-04 sec
 We obtained these results by using NVIDIA Tesla A100 PCIe 40GB GPU with CUDA version 11.2 and nvfortran version 21.3-0.
 
 ## Test data
-Original data in `./data/observation` and `./data/template` are dummy data and generated from a uniform pseudorandom number with the interval [-50:50].
+Data in `./data/observation` and `./data/template` are dummy data and generated from a uniform pseudorandom number with the interval [-50:50].
 
 ## Publication
 Yuma Kikuchi, Kohei Fujita, Tsuyoshi Ichimura, Muneo Hori, and Lalith Maddegedara, “Calculation of Cross-correlation Function Accelerated by Tensor Cores with TensorFloat-32 precision on Ampere GPU”, Proceedings of 11th International Workshop on Advances in High-Performance Computational Earth Sciences: Applications & Frameworks, 2022. (accepted)

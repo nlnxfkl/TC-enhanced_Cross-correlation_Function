@@ -14,7 +14,8 @@ The cross-correlation function can be calculated as a matrix-matrix product, and
 ## Usage
 ### Setting of input files
 * The number of time steps in observation data (referred to as matrix B in the paper) and the number of templates are defined in `./data/parameter_setting.dat`.
-* In our implementation, the number of timesteps of observation data has to be a multiple of 256.
+* In this implementation, the number of timesteps of observation data must be a multiple of 256.
+* In this implementation, the number of template waves of must be less than 16.
 ```
 $ cat ./data/paramter_setting.dat
 the number of timesteps of observation data

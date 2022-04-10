@@ -90,10 +90,13 @@ $ make
 You can run the program by simply `./a.out`.  
 If all goes well, you can get standard output as below:  
 ```
-observation data loaded.
-Cross-correlation Function for template wave 000001 to 000016
+
+...
+
+maximum absolute error to FP64:    5.1826030157187120E-005
 computation completed.
-Computation time on GPU : 0.6198883E-04 sec
+Computation time on CPU : 0.4510880E-03 sec
+Computation time on GPU : 0.3099442E-04 sec
 ```
 We obtained these results by using NVIDIA Tesla A100 PCIe 40GB GPU with CUDA version 11.2 and nvfortran version 21.3-0.
 

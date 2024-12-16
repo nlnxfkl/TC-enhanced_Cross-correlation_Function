@@ -49,7 +49,7 @@
       integer*4 ntori,nwori,nc,nt,nw
       real*8 eps
 
-      open(10,file='../data/parameter_setting.dat',status='unknown')
+      open(10,file='./data/parameter_setting.dat',status='unknown')
       read(10,*) ! the number of timesteps of observation data
       read(10,*) ntori
       read(10,*) ! the number of template waves
@@ -109,7 +109,7 @@ c----------------------------------------------------------------------
       t_gpu=0d0
 
       !----------------------------------------------------------------!
-      open(11,file='../data/obs_file.dat',status='unknown')
+      open(11,file='./data/obs_file.dat',status='unknown')
       ! open(11,file='../data/obs_file.dat.actual',status='unknown')
       !----------------------------------------------------------------!
       read(11,*) !filename for observation data
@@ -155,7 +155,7 @@ c----------------------------------------------------------------------
       write(*,'(a24)') "observation data loaded."
 
       !----------------------------------------------------------------!
-      open(12,file='../data/tpl_file.dat',status='unknown')
+      open(12,file='./data/tpl_file.dat',status='unknown')
       ! open(12,file='../data/tpl_file.dat.512',status='unknown')
       ! open(12,file='../data/tpl_file.dat.1024',status='unknown')
       ! open(12,file='../data/tpl_file.dat.2048',status='unknown')
@@ -166,7 +166,7 @@ c----------------------------------------------------------------------
       !----------------------------------------------------------------!
       read(12,*) !filename for template data
 
-      open(13,file='../results_ampere/res.csv',status='unknown')
+      open(13,file='res.csv',status='unknown')
 
       do i_tplbase=1,nw,NTENSOR
         write(*,'(a27,i7.6,a3,i7.6)')

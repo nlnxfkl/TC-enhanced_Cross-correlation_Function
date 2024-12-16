@@ -343,9 +343,6 @@ c-----------------------------------------------------------------------
       block_size = 128
       nwarps = block_size / 32
 
-      istat=cudaFuncSetAttribute(compdef_gputc, 8, 1024*72)
-      istat=cudaFuncSetAttribute(compdef_gputc, 9, 100)
-
 #ifdef VERIFICATION
       n_iters = 1
       call call_compdef_gputc

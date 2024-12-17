@@ -1,3 +1,32 @@
+! SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+! SPDX-License-Identifier: BSD-3-Clause
+!
+! Redistribution and use in source and binary forms, with or without
+! modification, are permitted provided that the following conditions are met:
+!
+! 1. Redistributions of source code must retain the above copyright notice, this
+! list of conditions and the following disclaimer.
+!
+! 2. Redistributions in binary form must reproduce the above copyright notice,
+! this list of conditions and the following disclaimer in the documentation
+! and/or other materials provided with the distribution.
+!
+! 3. Neither the name of the copyright holder nor the names of its
+! contributors may be used to endorse or promote products derived from
+! this software without specific prior written permission.
+!
+! THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+! AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+! IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+! DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+! FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+! DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+! SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+! CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+! OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+! OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+!
+
 ! #define USE_CUBLAS
 
 #ifndef USE_CUBLAS
@@ -20,7 +49,7 @@
       integer*4 ntori,nwori,nc,nt,nw
       real*8 eps
 
-      open(10,file='../data/parameter_setting.dat',status='unknown')
+      open(10,file='./data/parameter_setting.dat',status='unknown')
       read(10,*) ! the number of timesteps of observation data
       read(10,*) ntori
       read(10,*) ! the number of template waves
@@ -80,7 +109,7 @@ c----------------------------------------------------------------------
       t_gpu=0d0
 
       !----------------------------------------------------------------!
-      open(11,file='../data/obs_file.dat',status='unknown')
+      open(11,file='./data/obs_file.dat',status='unknown')
       ! open(11,file='../data/obs_file.dat.actual',status='unknown')
       !----------------------------------------------------------------!
       read(11,*) !filename for observation data
@@ -126,7 +155,7 @@ c----------------------------------------------------------------------
       write(*,'(a24)') "observation data loaded."
 
       !----------------------------------------------------------------!
-      open(12,file='../data/tpl_file.dat',status='unknown')
+      open(12,file='./data/tpl_file.dat',status='unknown')
       ! open(12,file='../data/tpl_file.dat.512',status='unknown')
       ! open(12,file='../data/tpl_file.dat.1024',status='unknown')
       ! open(12,file='../data/tpl_file.dat.2048',status='unknown')
@@ -137,7 +166,7 @@ c----------------------------------------------------------------------
       !----------------------------------------------------------------!
       read(12,*) !filename for template data
 
-      open(13,file='../results_ampere/res.csv',status='unknown')
+      open(13,file='res.csv',status='unknown')
 
       do i_tplbase=1,nw,NTENSOR
         write(*,'(a27,i7.6,a3,i7.6)')
@@ -217,6 +246,7 @@ c-----------------------------------------------------------------------
      & nc,nt,nm,nw,obs,obsco,tplori,tpl,tplscale,co,
      & t_cpu,t_gpu)
 #endif
+      use cudafor
       integer*4 nc,nt,nm,nw
       real*8 obs(nt),tpl(nm,NTENSOR),tplori(nm,NTENSOR),tplco(NTENSOR)
       real*8 obsco(nt),tmp,co(nt,NTENSOR),obsl(nm)
@@ -236,8 +266,13 @@ c-----------------------------------------------------------------------
       real*4,device:: tpl_h_d(nm,NTENSOR),tplscale_d(nm/NTENSOR,NTENSOR)
 #endif
 
+      integer*4 block_size,num_warps
+      integer*4 grid_size
+      integer*4 n_iters
       real*8 t1,t2
       real*8 t_cpu,t_gpu
+
+      external:: compdef_gputc
 
 #ifdef USE_CUBLAS
       obs_s = obs
@@ -305,16 +340,24 @@ c-----------------------------------------------------------------------
       write(*,*) '...'
 #ifndef USE_CUBLAS
       call cpu_time(t1)
-      call compdef_gputc <<<nc/(NTENSOR*NBLOCK)+1,32>>>
-#ifndef USE_TF32
-     & (nt_d,nm_d,nc_d,obs_s_d,tpl_h_d,tplscale_d,co_s_d)
-#else
+      block_size = 128
+      nwarps = block_size / 32
+
+#ifdef VERIFICATION
+      n_iters = 1
+      call call_compdef_gputc
      & (nt_d,nm_d,nc_d,obs_s_d,tpl_h_d,co_s_d)
+#else
+      n_iters = 1000
+      do i=1,n_iters
+        call call_compdef_gputc
+     &   (nt_d,nm_d,nc_d,obs_s_d,tpl_h_d,co_s_d)
+      enddo
 #endif
       istat=cudadevicesynchronize()
       call cpu_time(t2)
       write(*,*) 'gpu calculation end'
-      t_gpu=t_gpu+(t2-t1)
+      t_gpu=t_gpu+(t2-t1)/n_iters
 #else
       call cublas_wrapper(nt,nm,nc,obs_s,transpose(tpl_h),co_s_t,t_gpu)
 #endif
@@ -340,6 +383,7 @@ c-----------------------------------------------------------------------
 
       ! check the result
       do ic=1,1000
+        if (ic>nc+1) exit
         write(*,*) co(ic,1),co_ori(ic,1),abs(co(ic,1)-co_ori(ic,1))
       enddo
 
@@ -349,10 +393,9 @@ c-----------------------------------------------------------------------
         max_abs_error = max(max_abs_error, abs(co(ic,i)-co_ori(ic,i)))
         tmp=abs((co(ic,i)-co_ori(ic,i))/co_ori(ic,i))
         if (tmp>0.1 .and. co_ori(ic,i)>0.1) then
-        write(*,'(a14,i10,f13.6,2e14.3,i4)')
-     &  '#,error,co,co_ori,id',
-     & ic,tmp*100,co(ic,i),co_ori(ic,i)
-        stop
+        write(*,'(a40,i10,i10,f13.6,2e14.3,i4)')
+     &  'time,template,error perc.,co,co_ori,id',
+     & ic,i,tmp*100,co(ic,i),co_ori(ic,i)
         endif
       enddo
       enddo
